@@ -33,6 +33,28 @@ class WorkorderController extends BaseController
             $query->andWhere(['state' => WorkOrder::$STATE_FINISH]);
         }
 
+        //根据不同角色查找对应的工单1-管理员 10-高级运维 20-一般运维
+        $user_id = \yii::$app->user->getIdentity()->user_id;
+        $user = User::find();
+        $userInfo = User::findOne($user_id);
+        if($userInfo->role_id == '1'){
+            //管理员查看所有
+
+        }else if($userInfo->role_id == '10'){
+            //高级运维查看本公司员工负责的所有工单
+            $company_id = $userInfo->company_id;
+            $users = $user
+                ->select('user_id')
+                ->where(['company_id' => $company_id])
+                ->column();
+            //->asArray()->all();
+            $query->andWhere(['or', ['user_id' => $users], ['worker_id' => $users]]);
+        }else{
+            //一般运维查看自己负责的工单
+            $query->andWhere(['or', ['user_id' => $user_id], ['worker_id' => $user_id]]);
+        }
+
+
         //分页
         $pagination = new \yii\data\Pagination([
             'defaultPageSize' => \Yii::$app->systemConfig->getValue('LIST_ROWS', 20),
